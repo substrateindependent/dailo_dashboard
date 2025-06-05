@@ -1,0 +1,2154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ray Dalio Economic Risk Monitoring Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 20px 0;
+            border-bottom: 2px solid #1a1a1a;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 300;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #00ff88 0%, #0088ff 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .risk-card {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            transition: all 0.3s ease;
+        }
+
+        .risk-card:hover {
+            border-color: #3a3a3a;
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .risk-title {
+            font-size: 1.3rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .probability-display {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            transition: all 0.5s ease;
+        }
+
+        .probability-change {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .risk-low { color: #00ff88; }
+        .risk-moderate { color: #ffaa00; }
+        .risk-high { color: #ff4444; }
+        .risk-critical { 
+            color: #ff0044; 
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .indicators-section {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .indicators-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .indicator {
+            background: #0a0a0a;
+            padding: 16px;
+            border-radius: 8px;
+            border: 1px solid #2a2a2a;
+        }
+
+        .indicator-name {
+            font-size: 0.9rem;
+            color: #888;
+            margin-bottom: 8px;
+        }
+
+        .indicator-value {
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+
+        .indicator-threshold {
+            font-size: 0.8rem;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .alert-banner {
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .alert-yellow {
+            background: rgba(255, 170, 0, 0.1);
+            border: 1px solid rgba(255, 170, 0, 0.3);
+            color: #ffaa00;
+        }
+
+        .alert-orange {
+            background: rgba(255, 136, 0, 0.1);
+            border: 1px solid rgba(255, 136, 0, 0.3);
+            color: #ff8800;
+        }
+
+        .alert-red {
+            background: rgba(255, 0, 68, 0.1);
+            border: 1px solid rgba(255, 0, 68, 0.3);
+            color: #ff0044;
+        }
+
+        .update-time {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #333;
+            border-top-color: #00ff88;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .data-source {
+            font-size: 0.8rem;
+            color: #555;
+            margin-top: 8px;
+        }
+
+        .error-state {
+            color: #ff4444;
+            font-size: 0.8rem;
+        }
+
+        .refresh-button {
+            float: right;
+            background: #1a1a1a;
+            border: 1px solid #00ff88;
+            color: #00ff88;
+            padding: 5px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+
+        .refresh-button:hover {
+            background: #00ff88;
+            color: #0a0a0a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ray Dalio Economic Risk Monitor</h1>
+            <p class="subtitle">Real-time Bayesian probability tracking of major economic events</p>
+        </header>
+
+        <div id="alert-banner" class="alert-banner"></div>
+
+        <div class="dashboard-grid">
+            <div class="risk-card" id="recession-card">
+                <h2 class="risk-title">📉 Massive Recession</h2>
+                <div class="probability-display" id="recession-prob">15.0%</div>
+                <div class="probability-change">Base rate: 15%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="depression-card">
+                <h2 class="risk-title">📊 Economic Depression</h2>
+                <div class="probability-display" id="depression-prob">3.0%</div>
+                <div class="probability-change">Base rate: 3%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="reserve-card">
+                <h2 class="risk-title">💵 USD Reserve Status Loss</h2>
+                <div class="probability-display" id="reserve-prob">5.0%</div>
+                <div class="probability-change">Base rate: 5%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="default-card">
+                <h2 class="risk-title">🏦 US Debt Default</h2>
+                <div class="probability-display" id="default-prob">1.0%</div>
+                <div class="probability-change">Base rate: 1%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="devaluation-card">
+                <h2 class="risk-title">📉 USD Devaluation</h2>
+                <div class="probability-display" id="devaluation-prob">20.0%</div>
+                <div class="probability-change">Base rate: 20%</div>
+                <div class="indicator-list"></div>
+            </div>
+        </div>
+
+        <div class="indicators-section">
+            <h2>Key Economic Indicators 
+                <span class="loading" id="loading-indicator"></span>
+                <button onclick="refreshData()" class="refresh-button">🔄 Refresh Data</button>
+            </h2>
+            <div class="indicators-grid" id="indicators-grid">
+                <!-- Indicators will be populated here -->
+            </div>
+        </div>
+
+        <div class="update-time" id="update-time">
+            Last updated: <span id="last-update">Never</span>
+            <div id="cors-notice" style="margin-top: 10px; font-size: 0.8rem; color: #888;"></div>
+        </div>
+        
+        <details style="margin-top: 40px; padding: 20px; background: #1a1a1a; border-radius: 8px; border: 1px solid #2a2a2a;">
+            <summary style="cursor: pointer; color: #00ff88; font-weight: 500;">
+                🚀 Enable Live FRED Data (Quick Setup)
+            </summary>
+            <div style="margin-top: 20px; color: #aaa; font-size: 0.9rem; line-height: 1.8;">
+                <h3 style="color: #fff; margin-bottom: 10px;">Step 1: Save the Proxy Server</h3>
+                <p>Copy the proxy server code from the "FRED API Proxy Server" artifact above and save it as <code>fred-proxy-server.js</code></p>
+                
+                <h3 style="color: #fff; margin: 20px 0 10px;">Step 2: Install & Run</h3>
+                <p>In your terminal, run:</p>
+                <pre style="background: #0a0a0a; padding: 10px; overflow-x: auto; border-radius: 4px;"><code># Install dependencies
+npm install express cors axios
+
+# Run the server
+node fred-proxy-server.js</code></pre>
+                
+                <h3 style="color: #fff; margin: 20px 0 10px;">Step 3: Refresh Dashboard</h3>
+                <p>Once you see "🚀 FRED Proxy Server Running!" in your terminal, refresh this page.</p>
+                <p>The dashboard will automatically connect and show live economic data!</p>
+                
+                <h3 style="color: #fff; margin: 20px 0 10px;">Current Status</h3>
+                <p id="backend-status">Checking backend connection...</p>
+                
+                <h3 style="color: #fff; margin: 20px 0 10px;">What You'll See</h3>
+                <ul style="margin-left: 20px;">
+                    <li>✅ Green status = Connected to live FRED data</li>
+                    <li>📊 Real-time economic indicators updated every 30 minutes</li>
+                    <li>🎯 Bayesian probabilities based on actual market conditions</li>
+                    <li>⚡ Manual refresh button for instant updates</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <script>
+        // Configuration
+        const FRED_API_KEY = 'a1a8ea0bfdd8114159d3b42992c83c67';
+        const BACKEND_URL = 'http://localhost:3001';
+        let useBackend = false;
+        
+        const BASE_PROBABILITIES = {
+            recession: 0.15,
+            depression: 0.03,
+            reserve: 0.05,
+            default: 0.01,
+            devaluation: 0.20
+        };
+
+        // State management
+        let currentProbabilities = {...BASE_PROBABILITIES};
+        let indicators = {};
+        let updateFactors = {
+            recession: [],
+            depression: [],
+            reserve: [],
+            default: [],
+            devaluation: []
+        };
+
+        // Mock data for when API fails
+        const MOCK_DATA = {
+            'DGS10': { value: 4.75, name: '10-Year Treasury Yield', threshold: '> 5%', transform: (v) => v.toFixed(2) + '%' },
+            'DFF': { value: 4.33, name: 'Fed Funds Rate', threshold: '< 0.5%', transform: (v) => v.toFixed(2) + '%' },
+            'GFDGDPA188S': { value: 123.0, name: 'Federal Debt/GDP', threshold: '> 125%', transform: (v) => v.toFixed(1) + '%' },
+            'BAA10Y': { value: 2.15, name: 'Credit Spreads (IG)', threshold: '> 4%', transform: (v) => (v * 100).toFixed(0) + ' bps' },
+            'UNRATE': { value: 4.2, name: 'Unemployment Rate', threshold: '> 7%', transform: (v) => v.toFixed(1) + '%' },
+            'T10Y2Y': { value: 0.20, name: 'Yield Curve (10Y-2Y)', threshold: '< 0%', transform: (v) => v.toFixed(2) + '%' },
+            'VIXCLS': { value: 15.2, name: 'VIX Volatility Index', threshold: '> 30', transform: (v) => v.toFixed(1) },
+            'DEXUSEU': { value: 1.03, name: 'EUR/USD Exchange Rate', threshold: '< 1.20', transform: (v) => v.toFixed(3) },
+            'GOLDAMGBD228NLBM': { value: 2650, name: 'Gold Price (USD/oz)', threshold: '50% rise = warning', transform: (v) => '
+
+        // Initialize dashboard
+        async function initDashboard() {
+            console.log('Initializing Dalio Dashboard...');
+            
+            // Check if backend is available
+            await checkBackendConnection();
+            
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+            
+            // Auto-refresh every 30 minutes
+            setInterval(async () => {
+                await fetchAllData();
+                updateProbabilities();
+                updateUI();
+            }, 1800000);
+        }
+
+        // Check backend connection
+        async function checkBackendConnection() {
+            const statusEl = document.getElementById('backend-status');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    useBackend = true;
+                    console.log('✅ Connected to FRED proxy server');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span style="color: #00ff88;">✅ Backend proxy server is connected and ready!</span>';
+                    }
+                    return true;
+                }
+            } catch (error) {
+                useBackend = false;
+                console.log('⚠️ Backend not available, using mock data');
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color: #ff8844;">⚠️ Backend proxy not detected. Follow the steps above to enable live data.</span>';
+                }
+            }
+            return false;
+        }
+
+        // Fetch all data
+        async function fetchAllData() {
+            showLoading(true);
+            
+            // Clear previous indicators
+            indicators = {};
+            
+            if (useBackend) {
+                // Try batch fetch for efficiency
+                await fetchAllDataFromBackend();
+            } else {
+                // Use mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicator(seriesId, config);
+                }
+            }
+            
+            // Special calculations
+            calculateDXY();
+            calculateDeficitGDP();
+            
+            showLoading(false);
+        }
+
+        // Batch fetch from backend
+        async function fetchAllDataFromBackend() {
+            try {
+                const seriesToFetch = Object.keys(MOCK_DATA);
+                
+                const response = await fetch(`${BACKEND_URL}/api/fred/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ series: seriesToFetch })
+                });
+                
+                const results = await response.json();
+                
+                // Process each result
+                for (const [seriesId, data] of Object.entries(results)) {
+                    const config = MOCK_DATA[seriesId];
+                    if (data.observations && data.observations.length > 0) {
+                        const value = parseFloat(data.observations[0].value);
+                        indicators[seriesId] = {
+                            value: config.transform(value),
+                            raw: value,
+                            threshold: config.threshold,
+                            name: config.name,
+                            source: 'FRED API',
+                            date: data.observations[0].date
+                        };
+                        console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                    } else if (data.error) {
+                        // Use mock as fallback
+                        await fetchIndicator(seriesId, config);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Batch fetch failed:', error);
+                // Fall back to individual fetches or mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicatorFromBackend(seriesId, config);
+                }
+            }
+        }
+
+        // Fetch individual indicator from backend
+        async function fetchIndicatorFromBackend(seriesId, config) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fred/${seriesId}`);
+                const data = await response.json();
+                
+                if (data.observations && data.observations.length > 0) {
+                    const value = parseFloat(data.observations[0].value);
+                    indicators[seriesId] = {
+                        value: config.transform(value),
+                        raw: value,
+                        threshold: config.threshold,
+                        name: config.name,
+                        source: 'FRED API',
+                        date: data.observations[0].date
+                    };
+                    console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                } else {
+                    throw new Error('No data available');
+                }
+            } catch (error) {
+                console.error(`Failed to fetch ${config.name} from backend:`, error);
+                await fetchIndicator(seriesId, config);
+            }
+        }
+
+        // Fetch individual indicator (mock)
+        async function fetchIndicator(seriesId, config) {
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Use mock data
+                const value = config.value;
+                
+                indicators[seriesId] = {
+                    value: config.transform(value),
+                    raw: value,
+                    threshold: config.threshold,
+                    name: config.name,
+                    source: 'Mock Data',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                
+                console.log(`◆ Mock data: ${config.name}: ${config.transform(value)}`);
+                
+            } catch (error) {
+                console.error(`Error with ${config.name}:`, error);
+            }
+        }
+
+        // Calculate derived indicators
+        function calculateDXY() {
+            if (indicators['DEXUSEU']) {
+                const eurUsd = indicators['DEXUSEU'].raw;
+                const dxyApprox = 120 - (eurUsd * 20);
+                
+                indicators['DXY'] = {
+                    value: dxyApprox.toFixed(1),
+                    raw: dxyApprox,
+                    threshold: '< 80',
+                    name: 'Dollar Index (DXY proxy)',
+                    source: 'Calculated',
+                    date: indicators['DEXUSEU'].date
+                };
+            }
+        }
+
+        async function calculateDeficitGDP() {
+            if (useBackend) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/treasury/deficit`);
+                    const data = await response.json();
+                    
+                    indicators['DeficitGDP'] = {
+                        value: data.deficit_gdp_ratio.toFixed(1) + '%',
+                        raw: data.deficit_gdp_ratio,
+                        threshold: '> 3%',
+                        name: 'Budget Deficit/GDP',
+                        source: data.source,
+                        date: data.date
+                    };
+                    console.log(`✓ Live deficit/GDP: ${data.deficit_gdp_ratio}%`);
+                    return;
+                } catch (error) {
+                    console.error('Failed to fetch deficit data from backend');
+                }
+            }
+            
+            // Fallback to estimate
+            const deficitGDP = 7.2;
+            
+            indicators['DeficitGDP'] = {
+                value: deficitGDP.toFixed(1) + '%',
+                raw: deficitGDP,
+                threshold: '> 3%',
+                name: 'Budget Deficit/GDP',
+                source: 'Estimate',
+                note: 'Current fiscal year estimate'
+            };
+        }
+
+        // Update probabilities based on indicators
+        function updateProbabilities() {
+            // Reset factors
+            updateFactors = {
+                recession: [],
+                depression: [],
+                reserve: [],
+                default: [],
+                devaluation: []
+            };
+
+            // Recession factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 5) {
+                updateFactors.recession.push({factor: 1.8, reason: 'Deficit > 5% GDP'});
+            }
+            if (indicators.BAA10Y && indicators.BAA10Y.raw > 4) {
+                updateFactors.recession.push({factor: 2.0, reason: 'Credit spreads > 400bps'});
+            }
+            if (indicators.T10Y2Y && indicators.T10Y2Y.raw < 0) {
+                updateFactors.recession.push({factor: 1.7, reason: 'Yield curve inverted'});
+            }
+
+            // Depression factors
+            if (indicators.DFF && indicators.DFF.raw < 0.5) {
+                updateFactors.depression.push({factor: 3.0, reason: 'Fed Funds < 0.5%'});
+            }
+            if (indicators.GFDGDPA188S && indicators.GFDGDPA188S.raw > 150) {
+                updateFactors.depression.push({factor: 2.0, reason: 'Debt/GDP > 150%'});
+            }
+            if (indicators.BOGMBASE && indicators.M2SL) {
+                // Check if monetary base is expanding rapidly relative to M2
+                const mbToM2 = indicators.BOGMBASE.raw / indicators.M2SL.raw;
+                if (mbToM2 > 0.3) {
+                    updateFactors.depression.push({factor: 1.5, reason: 'Extreme QE conditions'});
+                }
+            }
+
+            // Reserve status factors
+            if (indicators.DXY && indicators.DXY.raw < 90) {
+                updateFactors.reserve.push({factor: 1.5, reason: 'Dollar weakness'});
+            }
+
+            // Default factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.default.push({factor: 3.0, reason: 'Deficit > 7% GDP'});
+            }
+            if (indicators.A091RC1Q027SBEA && indicators.A091RC1Q027SBEA.raw > 4) {
+                updateFactors.default.push({factor: 2.5, reason: 'Interest payments > 4% GDP'});
+            }
+            if (indicators.DGS10 && indicators.DFF && indicators.DGS10.raw > indicators.DFF.raw + 2) {
+                updateFactors.default.push({factor: 1.5, reason: 'Rising long-term rates'});
+            }
+
+            // Devaluation factors
+            if (indicators.DXY && indicators.DXY.raw < 100) {
+                updateFactors.devaluation.push({factor: 1.5, reason: 'DXY < 100'});
+            }
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.devaluation.push({factor: 1.8, reason: 'High deficit monetization risk'});
+            }
+
+            // Calculate new probabilities
+            for (let event in currentProbabilities) {
+                let baseProbability = BASE_PROBABILITIES[event];
+                let factors = updateFactors[event];
+                
+                if (factors.length > 0) {
+                    let combinedFactor = factors.reduce((acc, f) => acc * f.factor, 1);
+                    
+                    // Apply correlation discount
+                    if (factors.length === 2) combinedFactor *= 0.7;
+                    if (factors.length >= 3) combinedFactor *= 0.5;
+                    
+                    currentProbabilities[event] = Math.min(baseProbability * combinedFactor, 1.0);
+                } else {
+                    currentProbabilities[event] = baseProbability;
+                }
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update probability displays
+            updateProbabilityDisplay('recession', currentProbabilities.recession);
+            updateProbabilityDisplay('depression', currentProbabilities.depression);
+            updateProbabilityDisplay('reserve', currentProbabilities.reserve);
+            updateProbabilityDisplay('default', currentProbabilities.default);
+            updateProbabilityDisplay('devaluation', currentProbabilities.devaluation);
+
+            // Update indicators
+            updateIndicatorsGrid();
+
+            // Update alerts
+            updateAlertBanner();
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+            
+            // Update data status
+            const liveCount = Object.values(indicators).filter(ind => ind.source === 'FRED API').length;
+            const mockCount = Object.values(indicators).filter(ind => ind.source === 'Mock Data').length;
+            const totalCount = Object.keys(indicators).length;
+            
+            const statusEl = document.getElementById('cors-notice');
+            
+            if (useBackend && liveCount === totalCount) {
+                statusEl.innerHTML = `✅ Connected to live FRED data via proxy server (${liveCount}/${totalCount} indicators)`;
+                statusEl.style.color = '#00ff88';
+            } else if (useBackend && liveCount > 0) {
+                statusEl.innerHTML = `⚠️ Partial live data: ${liveCount} live, ${mockCount} mock indicators`;
+                statusEl.style.color = '#ffaa00';
+            } else if (!useBackend) {
+                statusEl.innerHTML = `
+                    ⚠️ Using mock data. To enable live data:<br>
+                    1. Save the proxy server code and run: <code>npm install express cors axios && node fred-proxy-server.js</code><br>
+                    2. Refresh this page once the server is running on port 3001
+                `;
+                statusEl.style.color = '#ff8844';
+            } else {
+                statusEl.innerHTML = 'Loading data...';
+            }
+        }
+
+        function updateProbabilityDisplay(event, probability) {
+            const element = document.getElementById(`${event}-prob`);
+            const card = document.getElementById(`${event}-card`);
+            const percentage = (probability * 100).toFixed(1) + '%';
+            
+            element.textContent = percentage;
+            
+            // Update color
+            element.classList.remove('risk-low', 'risk-moderate', 'risk-high', 'risk-critical');
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            if (probability >= thresholds[event]) {
+                element.classList.add('risk-critical');
+            } else if (probability >= thresholds[event] * 0.7) {
+                element.classList.add('risk-high');
+            } else if (probability >= thresholds[event] * 0.4) {
+                element.classList.add('risk-moderate');
+            } else {
+                element.classList.add('risk-low');
+            }
+
+            // Update factors
+            const factorsList = card.querySelector('.indicator-list');
+            if (updateFactors[event].length > 0) {
+                factorsList.innerHTML = updateFactors[event]
+                    .map(f => `<div class="data-source">↗ ${f.reason} (×${f.factor})</div>`)
+                    .join('');
+            } else {
+                factorsList.innerHTML = '<div class="data-source">No active triggers</div>';
+            }
+        }
+
+        function updateIndicatorsGrid() {
+            const grid = document.getElementById('indicators-grid');
+            grid.innerHTML = '';
+            
+            const displayOrder = [
+                'DGS10', 'DFF', 'T10Y2Y', 'GFDGDPA188S', 
+                'DeficitGDP', 'A091RC1Q027SBEA', 'BAA10Y', 'VIXCLS', 
+                'DXY', 'GOLDAMGBD228NLBM', 'UNRATE', 'M2SL', 'BOGMBASE'
+            ];
+            
+            displayOrder.forEach(key => {
+                if (indicators[key]) {
+                    const indicator = indicators[key];
+                    const div = document.createElement('div');
+                    div.className = 'indicator';
+                    
+                    div.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value">${indicator.value}</div>
+                        <div class="indicator-threshold">Threshold: ${indicator.threshold}</div>
+                        <div class="data-source">
+                            Source: ${indicator.source}
+                            ${indicator.date ? ` (${indicator.date})` : ''}
+                            ${indicator.note ? `<br>${indicator.note}` : ''}
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function updateAlertBanner() {
+            const banner = document.getElementById('alert-banner');
+            const criticalEvents = [];
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            for (const [event, prob] of Object.entries(currentProbabilities)) {
+                if (prob >= thresholds[event]) {
+                    criticalEvents.push(event);
+                }
+            }
+
+            if (criticalEvents.length > 0) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-red';
+                banner.textContent = `⚠️ RED ALERT: Critical risk levels for ${criticalEvents.join(', ')}`;
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 3) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-orange';
+                banner.textContent = '⚠️ ORANGE ALERT: Multiple elevated risk indicators';
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 2) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-yellow';
+                banner.textContent = '⚠️ YELLOW ALERT: Some risk indicators elevated';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-indicator').style.display = show ? 'inline-block' : 'none';
+        }
+
+        // Manual refresh
+        async function refreshData() {
+            console.log('Manual refresh triggered...');
+            await checkBackendConnection();
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+        }
+
+        // Start the dashboard
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html> + v.toFixed(2) },
+            'M2SL': { value: 21400, name: 'M2 Money Supply (Bil)', threshold: 'High growth = warning', transform: (v) => '
+
+        // Initialize dashboard
+        async function initDashboard() {
+            console.log('Initializing Dalio Dashboard...');
+            
+            // Check if backend is available
+            await checkBackendConnection();
+            
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+            
+            // Auto-refresh every 30 minutes
+            setInterval(async () => {
+                await fetchAllData();
+                updateProbabilities();
+                updateUI();
+            }, 1800000);
+        }
+
+        // Check backend connection
+        async function checkBackendConnection() {
+            const statusEl = document.getElementById('backend-status');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    useBackend = true;
+                    console.log('✅ Connected to FRED proxy server');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span style="color: #00ff88;">✅ Backend proxy server is connected and ready!</span>';
+                    }
+                    return true;
+                }
+            } catch (error) {
+                useBackend = false;
+                console.log('⚠️ Backend not available, using mock data');
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color: #ff8844;">⚠️ Backend proxy not detected. Follow the steps above to enable live data.</span>';
+                }
+            }
+            return false;
+        }
+
+        // Fetch all data
+        async function fetchAllData() {
+            showLoading(true);
+            
+            // Clear previous indicators
+            indicators = {};
+            
+            if (useBackend) {
+                // Try batch fetch for efficiency
+                await fetchAllDataFromBackend();
+            } else {
+                // Use mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicator(seriesId, config);
+                }
+            }
+            
+            // Special calculations
+            calculateDXY();
+            calculateDeficitGDP();
+            
+            showLoading(false);
+        }
+
+        // Batch fetch from backend
+        async function fetchAllDataFromBackend() {
+            try {
+                const seriesToFetch = Object.keys(MOCK_DATA);
+                
+                const response = await fetch(`${BACKEND_URL}/api/fred/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ series: seriesToFetch })
+                });
+                
+                const results = await response.json();
+                
+                // Process each result
+                for (const [seriesId, data] of Object.entries(results)) {
+                    const config = MOCK_DATA[seriesId];
+                    if (data.observations && data.observations.length > 0) {
+                        const value = parseFloat(data.observations[0].value);
+                        indicators[seriesId] = {
+                            value: config.transform(value),
+                            raw: value,
+                            threshold: config.threshold,
+                            name: config.name,
+                            source: 'FRED API',
+                            date: data.observations[0].date
+                        };
+                        console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                    } else if (data.error) {
+                        // Use mock as fallback
+                        await fetchIndicator(seriesId, config);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Batch fetch failed:', error);
+                // Fall back to individual fetches or mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicatorFromBackend(seriesId, config);
+                }
+            }
+        }
+
+        // Fetch individual indicator from backend
+        async function fetchIndicatorFromBackend(seriesId, config) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fred/${seriesId}`);
+                const data = await response.json();
+                
+                if (data.observations && data.observations.length > 0) {
+                    const value = parseFloat(data.observations[0].value);
+                    indicators[seriesId] = {
+                        value: config.transform(value),
+                        raw: value,
+                        threshold: config.threshold,
+                        name: config.name,
+                        source: 'FRED API',
+                        date: data.observations[0].date
+                    };
+                    console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                } else {
+                    throw new Error('No data available');
+                }
+            } catch (error) {
+                console.error(`Failed to fetch ${config.name} from backend:`, error);
+                await fetchIndicator(seriesId, config);
+            }
+        }
+
+        // Fetch individual indicator (mock)
+        async function fetchIndicator(seriesId, config) {
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Use mock data
+                const value = config.value;
+                
+                indicators[seriesId] = {
+                    value: config.transform(value),
+                    raw: value,
+                    threshold: config.threshold,
+                    name: config.name,
+                    source: 'Mock Data',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                
+                console.log(`◆ Mock data: ${config.name}: ${config.transform(value)}`);
+                
+            } catch (error) {
+                console.error(`Error with ${config.name}:`, error);
+            }
+        }
+
+        // Calculate derived indicators
+        function calculateDXY() {
+            if (indicators['DEXUSEU']) {
+                const eurUsd = indicators['DEXUSEU'].raw;
+                const dxyApprox = 120 - (eurUsd * 20);
+                
+                indicators['DXY'] = {
+                    value: dxyApprox.toFixed(1),
+                    raw: dxyApprox,
+                    threshold: '< 80',
+                    name: 'Dollar Index (DXY proxy)',
+                    source: 'Calculated',
+                    date: indicators['DEXUSEU'].date
+                };
+            }
+        }
+
+        async function calculateDeficitGDP() {
+            if (useBackend) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/treasury/deficit`);
+                    const data = await response.json();
+                    
+                    indicators['DeficitGDP'] = {
+                        value: data.deficit_gdp_ratio.toFixed(1) + '%',
+                        raw: data.deficit_gdp_ratio,
+                        threshold: '> 3%',
+                        name: 'Budget Deficit/GDP',
+                        source: data.source,
+                        date: data.date
+                    };
+                    console.log(`✓ Live deficit/GDP: ${data.deficit_gdp_ratio}%`);
+                    return;
+                } catch (error) {
+                    console.error('Failed to fetch deficit data from backend');
+                }
+            }
+            
+            // Fallback to estimate
+            const deficitGDP = 7.2;
+            
+            indicators['DeficitGDP'] = {
+                value: deficitGDP.toFixed(1) + '%',
+                raw: deficitGDP,
+                threshold: '> 3%',
+                name: 'Budget Deficit/GDP',
+                source: 'Estimate',
+                note: 'Current fiscal year estimate'
+            };
+        }
+
+        // Update probabilities based on indicators
+        function updateProbabilities() {
+            // Reset factors
+            updateFactors = {
+                recession: [],
+                depression: [],
+                reserve: [],
+                default: [],
+                devaluation: []
+            };
+
+            // Recession factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 5) {
+                updateFactors.recession.push({factor: 1.8, reason: 'Deficit > 5% GDP'});
+            }
+            if (indicators.BAA10Y && indicators.BAA10Y.raw > 4) {
+                updateFactors.recession.push({factor: 2.0, reason: 'Credit spreads > 400bps'});
+            }
+            if (indicators.T10Y2Y && indicators.T10Y2Y.raw < 0) {
+                updateFactors.recession.push({factor: 1.7, reason: 'Yield curve inverted'});
+            }
+
+            // Depression factors
+            if (indicators.DFF && indicators.DFF.raw < 0.5) {
+                updateFactors.depression.push({factor: 3.0, reason: 'Fed Funds < 0.5%'});
+            }
+            if (indicators.GFDGDPA188S && indicators.GFDGDPA188S.raw > 150) {
+                updateFactors.depression.push({factor: 2.0, reason: 'Debt/GDP > 150%'});
+            }
+
+            // Reserve status factors
+            if (indicators.DXY && indicators.DXY.raw < 90) {
+                updateFactors.reserve.push({factor: 1.5, reason: 'Dollar weakness'});
+            }
+
+            // Default factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.default.push({factor: 3.0, reason: 'Deficit > 7% GDP'});
+            }
+
+            // Devaluation factors
+            if (indicators.DXY && indicators.DXY.raw < 100) {
+                updateFactors.devaluation.push({factor: 1.5, reason: 'DXY < 100'});
+            }
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.devaluation.push({factor: 1.8, reason: 'High deficit monetization risk'});
+            }
+
+            // Calculate new probabilities
+            for (let event in currentProbabilities) {
+                let baseProbability = BASE_PROBABILITIES[event];
+                let factors = updateFactors[event];
+                
+                if (factors.length > 0) {
+                    let combinedFactor = factors.reduce((acc, f) => acc * f.factor, 1);
+                    
+                    // Apply correlation discount
+                    if (factors.length === 2) combinedFactor *= 0.7;
+                    if (factors.length >= 3) combinedFactor *= 0.5;
+                    
+                    currentProbabilities[event] = Math.min(baseProbability * combinedFactor, 1.0);
+                } else {
+                    currentProbabilities[event] = baseProbability;
+                }
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update probability displays
+            updateProbabilityDisplay('recession', currentProbabilities.recession);
+            updateProbabilityDisplay('depression', currentProbabilities.depression);
+            updateProbabilityDisplay('reserve', currentProbabilities.reserve);
+            updateProbabilityDisplay('default', currentProbabilities.default);
+            updateProbabilityDisplay('devaluation', currentProbabilities.devaluation);
+
+            // Update indicators
+            updateIndicatorsGrid();
+
+            // Update alerts
+            updateAlertBanner();
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+            
+            // Update data status
+            const liveCount = Object.values(indicators).filter(ind => ind.source === 'FRED API').length;
+            const mockCount = Object.values(indicators).filter(ind => ind.source === 'Mock Data').length;
+            const totalCount = Object.keys(indicators).length;
+            
+            const statusEl = document.getElementById('cors-notice');
+            
+            if (useBackend && liveCount === totalCount) {
+                statusEl.innerHTML = `✅ Connected to live FRED data via proxy server (${liveCount}/${totalCount} indicators)`;
+                statusEl.style.color = '#00ff88';
+            } else if (useBackend && liveCount > 0) {
+                statusEl.innerHTML = `⚠️ Partial live data: ${liveCount} live, ${mockCount} mock indicators`;
+                statusEl.style.color = '#ffaa00';
+            } else if (!useBackend) {
+                statusEl.innerHTML = `
+                    ⚠️ Using mock data. To enable live data:<br>
+                    1. Save the proxy server code and run: <code>npm install express cors axios && node fred-proxy-server.js</code><br>
+                    2. Refresh this page once the server is running on port 3001
+                `;
+                statusEl.style.color = '#ff8844';
+            } else {
+                statusEl.innerHTML = 'Loading data...';
+            }
+        }
+
+        function updateProbabilityDisplay(event, probability) {
+            const element = document.getElementById(`${event}-prob`);
+            const card = document.getElementById(`${event}-card`);
+            const percentage = (probability * 100).toFixed(1) + '%';
+            
+            element.textContent = percentage;
+            
+            // Update color
+            element.classList.remove('risk-low', 'risk-moderate', 'risk-high', 'risk-critical');
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            if (probability >= thresholds[event]) {
+                element.classList.add('risk-critical');
+            } else if (probability >= thresholds[event] * 0.7) {
+                element.classList.add('risk-high');
+            } else if (probability >= thresholds[event] * 0.4) {
+                element.classList.add('risk-moderate');
+            } else {
+                element.classList.add('risk-low');
+            }
+
+            // Update factors
+            const factorsList = card.querySelector('.indicator-list');
+            if (updateFactors[event].length > 0) {
+                factorsList.innerHTML = updateFactors[event]
+                    .map(f => `<div class="data-source">↗ ${f.reason} (×${f.factor})</div>`)
+                    .join('');
+            } else {
+                factorsList.innerHTML = '<div class="data-source">No active triggers</div>';
+            }
+        }
+
+        function updateIndicatorsGrid() {
+            const grid = document.getElementById('indicators-grid');
+            grid.innerHTML = '';
+            
+            const displayOrder = [
+                'DGS10', 'DFF', 'T10Y2Y', 'GFDGDPA188S', 
+                'DeficitGDP', 'BAA10Y', 'VIXCLS', 'DXY', 
+                'GOLDAMGBD228NLBM', 'UNRATE'
+            ];
+            
+            displayOrder.forEach(key => {
+                if (indicators[key]) {
+                    const indicator = indicators[key];
+                    const div = document.createElement('div');
+                    div.className = 'indicator';
+                    
+                    div.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value">${indicator.value}</div>
+                        <div class="indicator-threshold">Threshold: ${indicator.threshold}</div>
+                        <div class="data-source">
+                            Source: ${indicator.source}
+                            ${indicator.date ? ` (${indicator.date})` : ''}
+                            ${indicator.note ? `<br>${indicator.note}` : ''}
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function updateAlertBanner() {
+            const banner = document.getElementById('alert-banner');
+            const criticalEvents = [];
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            for (const [event, prob] of Object.entries(currentProbabilities)) {
+                if (prob >= thresholds[event]) {
+                    criticalEvents.push(event);
+                }
+            }
+
+            if (criticalEvents.length > 0) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-red';
+                banner.textContent = `⚠️ RED ALERT: Critical risk levels for ${criticalEvents.join(', ')}`;
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 3) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-orange';
+                banner.textContent = '⚠️ ORANGE ALERT: Multiple elevated risk indicators';
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 2) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-yellow';
+                banner.textContent = '⚠️ YELLOW ALERT: Some risk indicators elevated';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-indicator').style.display = show ? 'inline-block' : 'none';
+        }
+
+        // Manual refresh
+        async function refreshData() {
+            console.log('Manual refresh triggered...');
+            await checkBackendConnection();
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+        }
+
+        // Start the dashboard
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html> + (v/1000).toFixed(1) + 'T' },
+            'BOGMBASE': { value: 5800, name: 'Monetary Base (Bil)', threshold: 'Rapid expansion', transform: (v) => '
+
+        // Initialize dashboard
+        async function initDashboard() {
+            console.log('Initializing Dalio Dashboard...');
+            
+            // Check if backend is available
+            await checkBackendConnection();
+            
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+            
+            // Auto-refresh every 30 minutes
+            setInterval(async () => {
+                await fetchAllData();
+                updateProbabilities();
+                updateUI();
+            }, 1800000);
+        }
+
+        // Check backend connection
+        async function checkBackendConnection() {
+            const statusEl = document.getElementById('backend-status');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    useBackend = true;
+                    console.log('✅ Connected to FRED proxy server');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span style="color: #00ff88;">✅ Backend proxy server is connected and ready!</span>';
+                    }
+                    return true;
+                }
+            } catch (error) {
+                useBackend = false;
+                console.log('⚠️ Backend not available, using mock data');
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color: #ff8844;">⚠️ Backend proxy not detected. Follow the steps above to enable live data.</span>';
+                }
+            }
+            return false;
+        }
+
+        // Fetch all data
+        async function fetchAllData() {
+            showLoading(true);
+            
+            // Clear previous indicators
+            indicators = {};
+            
+            if (useBackend) {
+                // Try batch fetch for efficiency
+                await fetchAllDataFromBackend();
+            } else {
+                // Use mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicator(seriesId, config);
+                }
+            }
+            
+            // Special calculations
+            calculateDXY();
+            calculateDeficitGDP();
+            
+            showLoading(false);
+        }
+
+        // Batch fetch from backend
+        async function fetchAllDataFromBackend() {
+            try {
+                const seriesToFetch = Object.keys(MOCK_DATA);
+                
+                const response = await fetch(`${BACKEND_URL}/api/fred/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ series: seriesToFetch })
+                });
+                
+                const results = await response.json();
+                
+                // Process each result
+                for (const [seriesId, data] of Object.entries(results)) {
+                    const config = MOCK_DATA[seriesId];
+                    if (data.observations && data.observations.length > 0) {
+                        const value = parseFloat(data.observations[0].value);
+                        indicators[seriesId] = {
+                            value: config.transform(value),
+                            raw: value,
+                            threshold: config.threshold,
+                            name: config.name,
+                            source: 'FRED API',
+                            date: data.observations[0].date
+                        };
+                        console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                    } else if (data.error) {
+                        // Use mock as fallback
+                        await fetchIndicator(seriesId, config);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Batch fetch failed:', error);
+                // Fall back to individual fetches or mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicatorFromBackend(seriesId, config);
+                }
+            }
+        }
+
+        // Fetch individual indicator from backend
+        async function fetchIndicatorFromBackend(seriesId, config) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fred/${seriesId}`);
+                const data = await response.json();
+                
+                if (data.observations && data.observations.length > 0) {
+                    const value = parseFloat(data.observations[0].value);
+                    indicators[seriesId] = {
+                        value: config.transform(value),
+                        raw: value,
+                        threshold: config.threshold,
+                        name: config.name,
+                        source: 'FRED API',
+                        date: data.observations[0].date
+                    };
+                    console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                } else {
+                    throw new Error('No data available');
+                }
+            } catch (error) {
+                console.error(`Failed to fetch ${config.name} from backend:`, error);
+                await fetchIndicator(seriesId, config);
+            }
+        }
+
+        // Fetch individual indicator (mock)
+        async function fetchIndicator(seriesId, config) {
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Use mock data
+                const value = config.value;
+                
+                indicators[seriesId] = {
+                    value: config.transform(value),
+                    raw: value,
+                    threshold: config.threshold,
+                    name: config.name,
+                    source: 'Mock Data',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                
+                console.log(`◆ Mock data: ${config.name}: ${config.transform(value)}`);
+                
+            } catch (error) {
+                console.error(`Error with ${config.name}:`, error);
+            }
+        }
+
+        // Calculate derived indicators
+        function calculateDXY() {
+            if (indicators['DEXUSEU']) {
+                const eurUsd = indicators['DEXUSEU'].raw;
+                const dxyApprox = 120 - (eurUsd * 20);
+                
+                indicators['DXY'] = {
+                    value: dxyApprox.toFixed(1),
+                    raw: dxyApprox,
+                    threshold: '< 80',
+                    name: 'Dollar Index (DXY proxy)',
+                    source: 'Calculated',
+                    date: indicators['DEXUSEU'].date
+                };
+            }
+        }
+
+        async function calculateDeficitGDP() {
+            if (useBackend) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/treasury/deficit`);
+                    const data = await response.json();
+                    
+                    indicators['DeficitGDP'] = {
+                        value: data.deficit_gdp_ratio.toFixed(1) + '%',
+                        raw: data.deficit_gdp_ratio,
+                        threshold: '> 3%',
+                        name: 'Budget Deficit/GDP',
+                        source: data.source,
+                        date: data.date
+                    };
+                    console.log(`✓ Live deficit/GDP: ${data.deficit_gdp_ratio}%`);
+                    return;
+                } catch (error) {
+                    console.error('Failed to fetch deficit data from backend');
+                }
+            }
+            
+            // Fallback to estimate
+            const deficitGDP = 7.2;
+            
+            indicators['DeficitGDP'] = {
+                value: deficitGDP.toFixed(1) + '%',
+                raw: deficitGDP,
+                threshold: '> 3%',
+                name: 'Budget Deficit/GDP',
+                source: 'Estimate',
+                note: 'Current fiscal year estimate'
+            };
+        }
+
+        // Update probabilities based on indicators
+        function updateProbabilities() {
+            // Reset factors
+            updateFactors = {
+                recession: [],
+                depression: [],
+                reserve: [],
+                default: [],
+                devaluation: []
+            };
+
+            // Recession factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 5) {
+                updateFactors.recession.push({factor: 1.8, reason: 'Deficit > 5% GDP'});
+            }
+            if (indicators.BAA10Y && indicators.BAA10Y.raw > 4) {
+                updateFactors.recession.push({factor: 2.0, reason: 'Credit spreads > 400bps'});
+            }
+            if (indicators.T10Y2Y && indicators.T10Y2Y.raw < 0) {
+                updateFactors.recession.push({factor: 1.7, reason: 'Yield curve inverted'});
+            }
+
+            // Depression factors
+            if (indicators.DFF && indicators.DFF.raw < 0.5) {
+                updateFactors.depression.push({factor: 3.0, reason: 'Fed Funds < 0.5%'});
+            }
+            if (indicators.GFDGDPA188S && indicators.GFDGDPA188S.raw > 150) {
+                updateFactors.depression.push({factor: 2.0, reason: 'Debt/GDP > 150%'});
+            }
+
+            // Reserve status factors
+            if (indicators.DXY && indicators.DXY.raw < 90) {
+                updateFactors.reserve.push({factor: 1.5, reason: 'Dollar weakness'});
+            }
+
+            // Default factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.default.push({factor: 3.0, reason: 'Deficit > 7% GDP'});
+            }
+
+            // Devaluation factors
+            if (indicators.DXY && indicators.DXY.raw < 100) {
+                updateFactors.devaluation.push({factor: 1.5, reason: 'DXY < 100'});
+            }
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.devaluation.push({factor: 1.8, reason: 'High deficit monetization risk'});
+            }
+
+            // Calculate new probabilities
+            for (let event in currentProbabilities) {
+                let baseProbability = BASE_PROBABILITIES[event];
+                let factors = updateFactors[event];
+                
+                if (factors.length > 0) {
+                    let combinedFactor = factors.reduce((acc, f) => acc * f.factor, 1);
+                    
+                    // Apply correlation discount
+                    if (factors.length === 2) combinedFactor *= 0.7;
+                    if (factors.length >= 3) combinedFactor *= 0.5;
+                    
+                    currentProbabilities[event] = Math.min(baseProbability * combinedFactor, 1.0);
+                } else {
+                    currentProbabilities[event] = baseProbability;
+                }
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update probability displays
+            updateProbabilityDisplay('recession', currentProbabilities.recession);
+            updateProbabilityDisplay('depression', currentProbabilities.depression);
+            updateProbabilityDisplay('reserve', currentProbabilities.reserve);
+            updateProbabilityDisplay('default', currentProbabilities.default);
+            updateProbabilityDisplay('devaluation', currentProbabilities.devaluation);
+
+            // Update indicators
+            updateIndicatorsGrid();
+
+            // Update alerts
+            updateAlertBanner();
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+            
+            // Update data status
+            const liveCount = Object.values(indicators).filter(ind => ind.source === 'FRED API').length;
+            const mockCount = Object.values(indicators).filter(ind => ind.source === 'Mock Data').length;
+            const totalCount = Object.keys(indicators).length;
+            
+            const statusEl = document.getElementById('cors-notice');
+            
+            if (useBackend && liveCount === totalCount) {
+                statusEl.innerHTML = `✅ Connected to live FRED data via proxy server (${liveCount}/${totalCount} indicators)`;
+                statusEl.style.color = '#00ff88';
+            } else if (useBackend && liveCount > 0) {
+                statusEl.innerHTML = `⚠️ Partial live data: ${liveCount} live, ${mockCount} mock indicators`;
+                statusEl.style.color = '#ffaa00';
+            } else if (!useBackend) {
+                statusEl.innerHTML = `
+                    ⚠️ Using mock data. To enable live data:<br>
+                    1. Save the proxy server code and run: <code>npm install express cors axios && node fred-proxy-server.js</code><br>
+                    2. Refresh this page once the server is running on port 3001
+                `;
+                statusEl.style.color = '#ff8844';
+            } else {
+                statusEl.innerHTML = 'Loading data...';
+            }
+        }
+
+        function updateProbabilityDisplay(event, probability) {
+            const element = document.getElementById(`${event}-prob`);
+            const card = document.getElementById(`${event}-card`);
+            const percentage = (probability * 100).toFixed(1) + '%';
+            
+            element.textContent = percentage;
+            
+            // Update color
+            element.classList.remove('risk-low', 'risk-moderate', 'risk-high', 'risk-critical');
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            if (probability >= thresholds[event]) {
+                element.classList.add('risk-critical');
+            } else if (probability >= thresholds[event] * 0.7) {
+                element.classList.add('risk-high');
+            } else if (probability >= thresholds[event] * 0.4) {
+                element.classList.add('risk-moderate');
+            } else {
+                element.classList.add('risk-low');
+            }
+
+            // Update factors
+            const factorsList = card.querySelector('.indicator-list');
+            if (updateFactors[event].length > 0) {
+                factorsList.innerHTML = updateFactors[event]
+                    .map(f => `<div class="data-source">↗ ${f.reason} (×${f.factor})</div>`)
+                    .join('');
+            } else {
+                factorsList.innerHTML = '<div class="data-source">No active triggers</div>';
+            }
+        }
+
+        function updateIndicatorsGrid() {
+            const grid = document.getElementById('indicators-grid');
+            grid.innerHTML = '';
+            
+            const displayOrder = [
+                'DGS10', 'DFF', 'T10Y2Y', 'GFDGDPA188S', 
+                'DeficitGDP', 'BAA10Y', 'VIXCLS', 'DXY', 
+                'GOLDAMGBD228NLBM', 'UNRATE'
+            ];
+            
+            displayOrder.forEach(key => {
+                if (indicators[key]) {
+                    const indicator = indicators[key];
+                    const div = document.createElement('div');
+                    div.className = 'indicator';
+                    
+                    div.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value">${indicator.value}</div>
+                        <div class="indicator-threshold">Threshold: ${indicator.threshold}</div>
+                        <div class="data-source">
+                            Source: ${indicator.source}
+                            ${indicator.date ? ` (${indicator.date})` : ''}
+                            ${indicator.note ? `<br>${indicator.note}` : ''}
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function updateAlertBanner() {
+            const banner = document.getElementById('alert-banner');
+            const criticalEvents = [];
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            for (const [event, prob] of Object.entries(currentProbabilities)) {
+                if (prob >= thresholds[event]) {
+                    criticalEvents.push(event);
+                }
+            }
+
+            if (criticalEvents.length > 0) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-red';
+                banner.textContent = `⚠️ RED ALERT: Critical risk levels for ${criticalEvents.join(', ')}`;
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 3) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-orange';
+                banner.textContent = '⚠️ ORANGE ALERT: Multiple elevated risk indicators';
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 2) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-yellow';
+                banner.textContent = '⚠️ YELLOW ALERT: Some risk indicators elevated';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-indicator').style.display = show ? 'inline-block' : 'none';
+        }
+
+        // Manual refresh
+        async function refreshData() {
+            console.log('Manual refresh triggered...');
+            await checkBackendConnection();
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+        }
+
+        // Start the dashboard
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html> + (v/1000).toFixed(1) + 'T' },
+            'A091RC1Q027SBEA': { value: 3.8, name: 'Interest Payments/GDP', threshold: '> 4%', transform: (v) => v.toFixed(1) + '%' }
+        };
+
+        // Initialize dashboard
+        async function initDashboard() {
+            console.log('Initializing Dalio Dashboard...');
+            
+            // Check if backend is available
+            await checkBackendConnection();
+            
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+            
+            // Auto-refresh every 30 minutes
+            setInterval(async () => {
+                await fetchAllData();
+                updateProbabilities();
+                updateUI();
+            }, 1800000);
+        }
+
+        // Check backend connection
+        async function checkBackendConnection() {
+            const statusEl = document.getElementById('backend-status');
+            try {
+                const response = await fetch(`${BACKEND_URL}/health`);
+                const data = await response.json();
+                if (data.status === 'ok') {
+                    useBackend = true;
+                    console.log('✅ Connected to FRED proxy server');
+                    if (statusEl) {
+                        statusEl.innerHTML = '<span style="color: #00ff88;">✅ Backend proxy server is connected and ready!</span>';
+                    }
+                    return true;
+                }
+            } catch (error) {
+                useBackend = false;
+                console.log('⚠️ Backend not available, using mock data');
+                if (statusEl) {
+                    statusEl.innerHTML = '<span style="color: #ff8844;">⚠️ Backend proxy not detected. Follow the steps above to enable live data.</span>';
+                }
+            }
+            return false;
+        }
+
+        // Fetch all data
+        async function fetchAllData() {
+            showLoading(true);
+            
+            // Clear previous indicators
+            indicators = {};
+            
+            if (useBackend) {
+                // Try batch fetch for efficiency
+                await fetchAllDataFromBackend();
+            } else {
+                // Use mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicator(seriesId, config);
+                }
+            }
+            
+            // Special calculations
+            calculateDXY();
+            calculateDeficitGDP();
+            
+            showLoading(false);
+        }
+
+        // Batch fetch from backend
+        async function fetchAllDataFromBackend() {
+            try {
+                const seriesToFetch = Object.keys(MOCK_DATA);
+                
+                const response = await fetch(`${BACKEND_URL}/api/fred/batch`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ series: seriesToFetch })
+                });
+                
+                const results = await response.json();
+                
+                // Process each result
+                for (const [seriesId, data] of Object.entries(results)) {
+                    const config = MOCK_DATA[seriesId];
+                    if (data.observations && data.observations.length > 0) {
+                        const value = parseFloat(data.observations[0].value);
+                        indicators[seriesId] = {
+                            value: config.transform(value),
+                            raw: value,
+                            threshold: config.threshold,
+                            name: config.name,
+                            source: 'FRED API',
+                            date: data.observations[0].date
+                        };
+                        console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                    } else if (data.error) {
+                        // Use mock as fallback
+                        await fetchIndicator(seriesId, config);
+                    }
+                }
+                
+            } catch (error) {
+                console.error('Batch fetch failed:', error);
+                // Fall back to individual fetches or mock data
+                for (const [seriesId, config] of Object.entries(MOCK_DATA)) {
+                    await fetchIndicatorFromBackend(seriesId, config);
+                }
+            }
+        }
+
+        // Fetch individual indicator from backend
+        async function fetchIndicatorFromBackend(seriesId, config) {
+            try {
+                const response = await fetch(`${BACKEND_URL}/api/fred/${seriesId}`);
+                const data = await response.json();
+                
+                if (data.observations && data.observations.length > 0) {
+                    const value = parseFloat(data.observations[0].value);
+                    indicators[seriesId] = {
+                        value: config.transform(value),
+                        raw: value,
+                        threshold: config.threshold,
+                        name: config.name,
+                        source: 'FRED API',
+                        date: data.observations[0].date
+                    };
+                    console.log(`✓ Live data: ${config.name}: ${config.transform(value)}`);
+                } else {
+                    throw new Error('No data available');
+                }
+            } catch (error) {
+                console.error(`Failed to fetch ${config.name} from backend:`, error);
+                await fetchIndicator(seriesId, config);
+            }
+        }
+
+        // Fetch individual indicator (mock)
+        async function fetchIndicator(seriesId, config) {
+            try {
+                // Simulate API delay
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Use mock data
+                const value = config.value;
+                
+                indicators[seriesId] = {
+                    value: config.transform(value),
+                    raw: value,
+                    threshold: config.threshold,
+                    name: config.name,
+                    source: 'Mock Data',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                
+                console.log(`◆ Mock data: ${config.name}: ${config.transform(value)}`);
+                
+            } catch (error) {
+                console.error(`Error with ${config.name}:`, error);
+            }
+        }
+
+        // Calculate derived indicators
+        function calculateDXY() {
+            if (indicators['DEXUSEU']) {
+                const eurUsd = indicators['DEXUSEU'].raw;
+                const dxyApprox = 120 - (eurUsd * 20);
+                
+                indicators['DXY'] = {
+                    value: dxyApprox.toFixed(1),
+                    raw: dxyApprox,
+                    threshold: '< 80',
+                    name: 'Dollar Index (DXY proxy)',
+                    source: 'Calculated',
+                    date: indicators['DEXUSEU'].date
+                };
+            }
+        }
+
+        async function calculateDeficitGDP() {
+            if (useBackend) {
+                try {
+                    const response = await fetch(`${BACKEND_URL}/api/treasury/deficit`);
+                    const data = await response.json();
+                    
+                    indicators['DeficitGDP'] = {
+                        value: data.deficit_gdp_ratio.toFixed(1) + '%',
+                        raw: data.deficit_gdp_ratio,
+                        threshold: '> 3%',
+                        name: 'Budget Deficit/GDP',
+                        source: data.source,
+                        date: data.date
+                    };
+                    console.log(`✓ Live deficit/GDP: ${data.deficit_gdp_ratio}%`);
+                    return;
+                } catch (error) {
+                    console.error('Failed to fetch deficit data from backend');
+                }
+            }
+            
+            // Fallback to estimate
+            const deficitGDP = 7.2;
+            
+            indicators['DeficitGDP'] = {
+                value: deficitGDP.toFixed(1) + '%',
+                raw: deficitGDP,
+                threshold: '> 3%',
+                name: 'Budget Deficit/GDP',
+                source: 'Estimate',
+                note: 'Current fiscal year estimate'
+            };
+        }
+
+        // Update probabilities based on indicators
+        function updateProbabilities() {
+            // Reset factors
+            updateFactors = {
+                recession: [],
+                depression: [],
+                reserve: [],
+                default: [],
+                devaluation: []
+            };
+
+            // Recession factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 5) {
+                updateFactors.recession.push({factor: 1.8, reason: 'Deficit > 5% GDP'});
+            }
+            if (indicators.BAA10Y && indicators.BAA10Y.raw > 4) {
+                updateFactors.recession.push({factor: 2.0, reason: 'Credit spreads > 400bps'});
+            }
+            if (indicators.T10Y2Y && indicators.T10Y2Y.raw < 0) {
+                updateFactors.recession.push({factor: 1.7, reason: 'Yield curve inverted'});
+            }
+
+            // Depression factors
+            if (indicators.DFF && indicators.DFF.raw < 0.5) {
+                updateFactors.depression.push({factor: 3.0, reason: 'Fed Funds < 0.5%'});
+            }
+            if (indicators.GFDGDPA188S && indicators.GFDGDPA188S.raw > 150) {
+                updateFactors.depression.push({factor: 2.0, reason: 'Debt/GDP > 150%'});
+            }
+
+            // Reserve status factors
+            if (indicators.DXY && indicators.DXY.raw < 90) {
+                updateFactors.reserve.push({factor: 1.5, reason: 'Dollar weakness'});
+            }
+
+            // Default factors
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.default.push({factor: 3.0, reason: 'Deficit > 7% GDP'});
+            }
+
+            // Devaluation factors
+            if (indicators.DXY && indicators.DXY.raw < 100) {
+                updateFactors.devaluation.push({factor: 1.5, reason: 'DXY < 100'});
+            }
+            if (indicators.DeficitGDP && indicators.DeficitGDP.raw > 7) {
+                updateFactors.devaluation.push({factor: 1.8, reason: 'High deficit monetization risk'});
+            }
+
+            // Calculate new probabilities
+            for (let event in currentProbabilities) {
+                let baseProbability = BASE_PROBABILITIES[event];
+                let factors = updateFactors[event];
+                
+                if (factors.length > 0) {
+                    let combinedFactor = factors.reduce((acc, f) => acc * f.factor, 1);
+                    
+                    // Apply correlation discount
+                    if (factors.length === 2) combinedFactor *= 0.7;
+                    if (factors.length >= 3) combinedFactor *= 0.5;
+                    
+                    currentProbabilities[event] = Math.min(baseProbability * combinedFactor, 1.0);
+                } else {
+                    currentProbabilities[event] = baseProbability;
+                }
+            }
+        }
+
+        // Update UI elements
+        function updateUI() {
+            // Update probability displays
+            updateProbabilityDisplay('recession', currentProbabilities.recession);
+            updateProbabilityDisplay('depression', currentProbabilities.depression);
+            updateProbabilityDisplay('reserve', currentProbabilities.reserve);
+            updateProbabilityDisplay('default', currentProbabilities.default);
+            updateProbabilityDisplay('devaluation', currentProbabilities.devaluation);
+
+            // Update indicators
+            updateIndicatorsGrid();
+
+            // Update alerts
+            updateAlertBanner();
+
+            // Update timestamp
+            document.getElementById('last-update').textContent = new Date().toLocaleString();
+            
+            // Update data status
+            const liveCount = Object.values(indicators).filter(ind => ind.source === 'FRED API').length;
+            const mockCount = Object.values(indicators).filter(ind => ind.source === 'Mock Data').length;
+            const totalCount = Object.keys(indicators).length;
+            
+            const statusEl = document.getElementById('cors-notice');
+            
+            if (useBackend && liveCount === totalCount) {
+                statusEl.innerHTML = `✅ Connected to live FRED data via proxy server (${liveCount}/${totalCount} indicators)`;
+                statusEl.style.color = '#00ff88';
+            } else if (useBackend && liveCount > 0) {
+                statusEl.innerHTML = `⚠️ Partial live data: ${liveCount} live, ${mockCount} mock indicators`;
+                statusEl.style.color = '#ffaa00';
+            } else if (!useBackend) {
+                statusEl.innerHTML = `
+                    ⚠️ Using mock data. To enable live data:<br>
+                    1. Save the proxy server code and run: <code>npm install express cors axios && node fred-proxy-server.js</code><br>
+                    2. Refresh this page once the server is running on port 3001
+                `;
+                statusEl.style.color = '#ff8844';
+            } else {
+                statusEl.innerHTML = 'Loading data...';
+            }
+        }
+
+        function updateProbabilityDisplay(event, probability) {
+            const element = document.getElementById(`${event}-prob`);
+            const card = document.getElementById(`${event}-card`);
+            const percentage = (probability * 100).toFixed(1) + '%';
+            
+            element.textContent = percentage;
+            
+            // Update color
+            element.classList.remove('risk-low', 'risk-moderate', 'risk-high', 'risk-critical');
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            if (probability >= thresholds[event]) {
+                element.classList.add('risk-critical');
+            } else if (probability >= thresholds[event] * 0.7) {
+                element.classList.add('risk-high');
+            } else if (probability >= thresholds[event] * 0.4) {
+                element.classList.add('risk-moderate');
+            } else {
+                element.classList.add('risk-low');
+            }
+
+            // Update factors
+            const factorsList = card.querySelector('.indicator-list');
+            if (updateFactors[event].length > 0) {
+                factorsList.innerHTML = updateFactors[event]
+                    .map(f => `<div class="data-source">↗ ${f.reason} (×${f.factor})</div>`)
+                    .join('');
+            } else {
+                factorsList.innerHTML = '<div class="data-source">No active triggers</div>';
+            }
+        }
+
+        function updateIndicatorsGrid() {
+            const grid = document.getElementById('indicators-grid');
+            grid.innerHTML = '';
+            
+            const displayOrder = [
+                'DGS10', 'DFF', 'T10Y2Y', 'GFDGDPA188S', 
+                'DeficitGDP', 'BAA10Y', 'VIXCLS', 'DXY', 
+                'GOLDAMGBD228NLBM', 'UNRATE'
+            ];
+            
+            displayOrder.forEach(key => {
+                if (indicators[key]) {
+                    const indicator = indicators[key];
+                    const div = document.createElement('div');
+                    div.className = 'indicator';
+                    
+                    div.innerHTML = `
+                        <div class="indicator-name">${indicator.name}</div>
+                        <div class="indicator-value">${indicator.value}</div>
+                        <div class="indicator-threshold">Threshold: ${indicator.threshold}</div>
+                        <div class="data-source">
+                            Source: ${indicator.source}
+                            ${indicator.date ? ` (${indicator.date})` : ''}
+                            ${indicator.note ? `<br>${indicator.note}` : ''}
+                        </div>
+                    `;
+                    grid.appendChild(div);
+                }
+            });
+        }
+
+        function updateAlertBanner() {
+            const banner = document.getElementById('alert-banner');
+            const criticalEvents = [];
+            
+            const thresholds = {
+                recession: 0.60,
+                depression: 0.20,
+                reserve: 0.30,
+                default: 0.10,
+                devaluation: 0.50
+            };
+            
+            for (const [event, prob] of Object.entries(currentProbabilities)) {
+                if (prob >= thresholds[event]) {
+                    criticalEvents.push(event);
+                }
+            }
+
+            if (criticalEvents.length > 0) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-red';
+                banner.textContent = `⚠️ RED ALERT: Critical risk levels for ${criticalEvents.join(', ')}`;
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 3) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-orange';
+                banner.textContent = '⚠️ ORANGE ALERT: Multiple elevated risk indicators';
+            } else if (Math.max(...Object.values(currentProbabilities)) > Math.max(...Object.values(BASE_PROBABILITIES)) * 2) {
+                banner.style.display = 'block';
+                banner.className = 'alert-banner alert-yellow';
+                banner.textContent = '⚠️ YELLOW ALERT: Some risk indicators elevated';
+            } else {
+                banner.style.display = 'none';
+            }
+        }
+
+        function showLoading(show) {
+            document.getElementById('loading-indicator').style.display = show ? 'inline-block' : 'none';
+        }
+
+        // Manual refresh
+        async function refreshData() {
+            console.log('Manual refresh triggered...');
+            await checkBackendConnection();
+            await fetchAllData();
+            updateProbabilities();
+            updateUI();
+        }
+
+        // Start the dashboard
+        window.addEventListener('load', initDashboard);
+    </script>
+</body>
+</html>
