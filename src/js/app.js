@@ -60,8 +60,8 @@ class DashboardApp {
             // Fetch all indicators
             const indicators = await this.dataService.fetchAllData();
 
-            // Update probabilities
-            const probabilities = this.probabilityCalculator.updateProbabilities(indicators);
+            // Update probabilities (with trend analysis)
+            const probabilities = await this.probabilityCalculator.updateProbabilities(indicators);
 
             // Get update factors
             const factors = this.probabilityCalculator.getAllFactors();

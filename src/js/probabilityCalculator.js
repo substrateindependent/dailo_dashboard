@@ -1,5 +1,6 @@
 /**
  * Bayesian probability calculator for economic risks
+ * Enhanced with trend analysis for more accurate forecasting
  */
 
 import {
@@ -9,6 +10,7 @@ import {
     CORRELATION_DISCOUNT
 } from './config.js';
 import { validateNumber, clamp, logger } from './utils.js';
+import { TrendAnalyzer } from './trendAnalyzer.js';
 
 /**
  * Probability calculator class
@@ -23,15 +25,30 @@ export class ProbabilityCalculator {
             default: [],
             devaluation: []
         };
+        this.trendAnalyzer = new TrendAnalyzer();
+        this.trendMultipliers = {};
+        this.useTrendAnalysis = true; // Can be toggled
     }
 
     /**
      * Update probabilities based on current indicators
      */
-    updateProbabilities(indicators) {
+    async updateProbabilities(indicators) {
         try {
             // Reset factors
             this.resetFactors();
+
+            // Fetch and analyze trends if enabled
+            if (this.useTrendAnalysis) {
+                try {
+                    logger.info('Analyzing trends for enhanced forecasting...');
+                    this.trendMultipliers = await this.trendAnalyzer.analyzeAllTrends(indicators);
+                    logger.info(`Trend multipliers calculated for ${Object.keys(this.trendMultipliers).length} indicators`);
+                } catch (error) {
+                    logger.warn('Trend analysis failed, using base calculations:', error.message);
+                    this.trendMultipliers = {};
+                }
+            }
 
             // Calculate factors for each risk type
             this.calculateRecessionFactors(indicators);
@@ -74,25 +91,37 @@ export class ProbabilityCalculator {
 
         // Deficit > 5% GDP
         if (indicators.DeficitGDP && this.checkThreshold(indicators.DeficitGDP.raw, thresholds.deficitGDP.value, '>')) {
+            const baseFactor = thresholds.deficitGDP.factor;
+            const trendFactor = this.applyTrendAdjustment(baseFactor, 'DeficitGDP');
             this.updateFactors.recession.push({
-                factor: thresholds.deficitGDP.factor,
-                reason: thresholds.deficitGDP.reason
+                factor: trendFactor,
+                baseFactor,
+                reason: thresholds.deficitGDP.reason,
+                trendAdjusted: trendFactor !== baseFactor
             });
         }
 
         // Credit spreads > 400bps
         if (indicators.BAA10Y && this.checkThreshold(indicators.BAA10Y.raw, thresholds.creditSpreads.value, '>')) {
+            const baseFactor = thresholds.creditSpreads.factor;
+            const trendFactor = this.applyTrendAdjustment(baseFactor, 'BAA10Y');
             this.updateFactors.recession.push({
-                factor: thresholds.creditSpreads.factor,
-                reason: thresholds.creditSpreads.reason
+                factor: trendFactor,
+                baseFactor,
+                reason: thresholds.creditSpreads.reason,
+                trendAdjusted: trendFactor !== baseFactor
             });
         }
 
         // Inverted yield curve
         if (indicators.T10Y2Y && this.checkThreshold(indicators.T10Y2Y.raw, thresholds.yieldCurve.value, '<')) {
+            const baseFactor = thresholds.yieldCurve.factor;
+            const trendFactor = this.applyTrendAdjustment(baseFactor, 'T10Y2Y');
             this.updateFactors.recession.push({
-                factor: thresholds.yieldCurve.factor,
-                reason: thresholds.yieldCurve.reason
+                factor: trendFactor,
+                baseFactor,
+                reason: thresholds.yieldCurve.reason,
+                trendAdjusted: trendFactor !== baseFactor
             });
         }
     }
@@ -241,6 +270,22 @@ export class ProbabilityCalculator {
     }
 
     /**
+     * Apply trend adjustment to a factor
+     */
+    applyTrendAdjustment(baseFactor, seriesId) {
+        if (!this.useTrendAnalysis || !this.trendMultipliers[seriesId]) {
+            return baseFactor;
+        }
+
+        const trendMultiplier = this.trendMultipliers[seriesId];
+        const adjustedFactor = baseFactor * trendMultiplier;
+
+        logger.info(`Trend adjustment for ${seriesId}: ${baseFactor.toFixed(2)} × ${trendMultiplier.toFixed(2)} = ${adjustedFactor.toFixed(2)}`);
+
+        return adjustedFactor;
+    }
+
+    /**
      * Calculate all probabilities
      */
     calculateAllProbabilities() {
@@ -264,6 +309,12 @@ export class ProbabilityCalculator {
                     0,
                     1.0
                 );
+
+                // Log if trend adjustments were applied
+                const trendAdjusted = factors.some(f => f.trendAdjusted);
+                if (trendAdjusted) {
+                    logger.info(`${event} probability includes trend adjustments`);
+                }
             } else {
                 this.currentProbabilities[event] = baseProbability;
             }
@@ -334,5 +385,27 @@ export class ProbabilityCalculator {
                 return thresholds && prob >= thresholds.critical;
             })
             .map(([event]) => event);
+    }
+
+    /**
+     * Toggle trend analysis on/off
+     */
+    setTrendAnalysis(enabled) {
+        this.useTrendAnalysis = enabled;
+        logger.info(`Trend analysis ${enabled ? 'enabled' : 'disabled'}`);
+    }
+
+    /**
+     * Get trend analysis for an indicator
+     */
+    getTrendAnalysis(seriesId, isInverted = false) {
+        return this.trendAnalyzer.getTrendAnalysis(seriesId, isInverted);
+    }
+
+    /**
+     * Get all trend multipliers
+     */
+    getTrendMultipliers() {
+        return { ...this.trendMultipliers };
     }
 }
