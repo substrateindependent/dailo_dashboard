@@ -5,7 +5,7 @@
 export const CONFIG = {
     // API Configuration
     FRED_API_KEY: 'f31a77511e44f9da37c9ec6632333504',
-    BACKEND_URL: 'http://localhost:3001',
+    BACKEND_URL: 'https://dalio-e2484ddc4757.herokuapp.com',
 
     // Timing Configuration
     REFRESH_INTERVAL_MS: 30 * 60 * 1000, // 30 minutes
