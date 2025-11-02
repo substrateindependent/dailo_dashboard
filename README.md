@@ -1,6 +1,14 @@
 # Ray Dalio Economic Risk Monitoring Dashboard
 
+[![Deploy to GitHub Pages](https://github.com/substrateindependent/dailo_dashboard/actions/workflows/deploy.yml/badge.svg)](https://github.com/substrateindependent/dailo_dashboard/actions/workflows/deploy.yml)
+
 A real-time economic risk monitoring dashboard inspired by Ray Dalio's principles for tracking major economic indicators and calculating Bayesian probabilities for significant economic events.
+
+## 🌐 Live Demo
+
+**View the deployed dashboard:** [https://substrateindependent.github.io/dailo_dashboard/](https://substrateindependent.github.io/dailo_dashboard/)
+
+> Note: The live demo uses mock economic data by default. For real-time FRED API data, see the [Live Data Setup](#live-data-setup) section below.
 
 ## Features
 
