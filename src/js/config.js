@@ -4,7 +4,7 @@
 
 export const CONFIG = {
     // API Configuration
-    FRED_API_KEY: 'a1a8ea0bfdd8114159d3b42992c83c67',
+    FRED_API_KEY: 'f31a77511e44f9da37c9ec6632333504',
     BACKEND_URL: 'http://localhost:3001',
 
     // Timing Configuration

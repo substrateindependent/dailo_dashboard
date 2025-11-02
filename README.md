@@ -13,11 +13,14 @@ A real-time economic risk monitoring dashboard inspired by Ray Dalio's principle
 ## Features
 
 - 📊 **Real-time Economic Data**: Fetches live data from the Federal Reserve Economic Data (FRED) API
-- 🎯 **Bayesian Probability Calculations**: Calculates conditional probabilities for major economic risks
+- 🧠 **Enhanced Bayesian Forecasting**: Calculates conditional probabilities with trend analysis
+- 📈 **Trend Analysis**: Analyzes 12-month historical data to adjust probabilities based on improving/worsening trends
+- 💾 **Smart Caching**: 30-minute data cache reduces API calls and improves performance
 - 🔄 **Automatic Updates**: Refreshes data every 30 minutes
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile devices
 - ⚡ **Graceful Degradation**: Falls back to mock data if API is unavailable
 - 🛡️ **Error Handling**: Comprehensive error handling and validation throughout
+- 🏦 **Treasury Integration**: Real Budget Deficit/GDP data from US Treasury API
 
 ## Monitored Economic Risks
 
@@ -90,15 +93,61 @@ This codebase was refactored from a single monolithic HTML file into a modular, 
 
 ## Usage
 
-### Basic Usage (Mock Data)
+### Quick Start (Mock Data)
 
 Simply open `index.html` in a modern web browser. The dashboard will load with mock economic data.
 
 ### Live Data Setup
 
-To connect to live FRED API data:
+The dashboard now includes a complete backend proxy server with caching, trend analysis, and Treasury API integration.
 
-1. Create a proxy server file `fred-proxy-server.js`:
+#### Quick Setup
+
+1. **Get a FRED API Key** (free): https://fred.stlouisfed.org/docs/api/api_key.html
+
+2. **Configure your API key**:
+   ```bash
+   cp .env.example .env
+   # Edit .env and add your FRED_API_KEY
+   ```
+
+3. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+
+4. **Start the backend**:
+   ```bash
+   npm run proxy
+   ```
+
+5. **Start the frontend** (in another terminal):
+   ```bash
+   npm run serve
+   ```
+
+6. **Open your browser**: http://localhost:8000
+
+For detailed setup instructions, deployment options, and troubleshooting, see [SETUP_GUIDE.md](SETUP_GUIDE.md).
+
+### Backend Server Features
+
+The included `fred-proxy-server.js` provides:
+
+- ✅ **FRED API Integration**: Fetches all 12 economic indicators
+- ✅ **Treasury API Integration**: Real Budget Deficit/GDP data
+- ✅ **30-Minute Caching**: Reduces API calls and improves performance
+- ✅ **Automatic Retries**: Exponential backoff for failed requests
+- ✅ **Batch Fetching**: Parallel requests for faster loading
+- ✅ **Historical Data**: Fetches 12 months for trend analysis
+- ✅ **Rate Limiting Protection**: Respects FRED API limits
+
+<details>
+<summary><b>Old Manual Setup (Legacy)</b></summary>
+
+To create a basic proxy server manually:
+
+1. Create a file `fred-proxy-server.js`:
 
 ```javascript
 const express = require('express');
@@ -187,6 +236,46 @@ node fred-proxy-server.js
 
 4. Refresh the dashboard - it will automatically connect to live data
 
+</details>
+
+## Enhanced Bayesian Forecasting
+
+The dashboard uses a sophisticated Bayesian probability model enhanced with trend analysis:
+
+### Base Calculation
+
+```
+New Probability = Base Probability × Combined Factor × Correlation Discount
+```
+
+Where:
+- **Base Probability**: Starting risk level (e.g., recession: 15%)
+- **Combined Factor**: Product of all triggered threshold factors
+- **Correlation Discount**: 0.7 for 2 factors, 0.5 for 3+ factors
+
+### Trend Enhancement (NEW!)
+
+Each factor is now adjusted based on historical trends:
+
+- **Improving Trend (↑)**: Factor × 0.7 (reduces probability)
+- **Stable Trend (→)**: Factor × 1.0 (no change)
+- **Worsening Trend (↓)**: Factor × 1.3 (increases probability)
+- **High Velocity**: Amplifies effect (0.5x to 1.5x range)
+
+**Example:** Credit spreads >400bps normally = 2.0x
+- If worsening rapidly → 2.0 × 1.5 = 3.0x
+- If improving → 2.0 × 0.7 = 1.4x
+
+This makes the forecast more accurate by considering whether indicators are getting better or worse.
+
+### Trend Analysis Details
+
+- **Data Source**: 12 months of historical data per indicator
+- **Direction**: Linear regression determines trend slope
+- **Velocity**: Rate of change per month
+- **Acceleration**: Change in velocity (for future enhancements)
+- **Inverted Indicators**: Automatically handles indicators where higher = worse (unemployment, credit spreads, etc.)
+
 ## Configuration
 
 All configuration is centralized in `src/js/config.js`:
@@ -197,6 +286,12 @@ All configuration is centralized in `src/js/config.js`:
 - `BASE_PROBABILITIES`: Base probability rates for each risk
 - `RISK_THRESHOLDS`: Alert thresholds for each risk level
 - `ECONOMIC_THRESHOLDS`: Economic indicator thresholds for probability calculations
+
+Backend configuration in `fred-proxy-server.js`:
+- `CACHE_DURATION_MS`: Cache TTL (default: 30 minutes)
+- `REQUEST_TIMEOUT_MS`: API request timeout (default: 10 seconds)
+- `MAX_RETRIES`: Retry attempts (default: 3)
+- `PORT`: Server port (default: 3001)
 
 ## Browser Compatibility
 
@@ -275,7 +370,17 @@ Data provided by the Federal Reserve Economic Data (FRED) API.
 
 ## Changelog
 
-### Version 2.0.0 (Current)
+### Version 2.1.0 (Current)
+- ✨ **NEW:** Complete backend proxy server with FRED & Treasury APIs
+- ✨ **NEW:** 30-minute data caching for performance
+- ✨ **NEW:** Trend analysis with 12-month historical data
+- ✨ **NEW:** Enhanced Bayesian forecasting with trend-based adjustments
+- ✨ **NEW:** Velocity and acceleration calculations
+- ✨ **NEW:** Comprehensive setup and deployment guide
+- 🐛 Fixed API key configuration
+- 📚 Enhanced documentation with troubleshooting
+
+### Version 2.0.0
 - Complete refactoring into modular architecture
 - Fixed file corruption issues
 - Added comprehensive error handling
