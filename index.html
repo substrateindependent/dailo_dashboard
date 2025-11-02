@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Real-time Bayesian probability tracking of major US economic risks inspired by Ray Dalio">
+    <title>Ray Dalio Economic Risk Monitoring Dashboard</title>
+    <link rel="stylesheet" href="src/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Ray Dalio Economic Risk Monitor</h1>
+            <p class="subtitle">Real-time Bayesian probability tracking of major economic events</p>
+        </header>
+
+        <div id="alert-banner" class="alert-banner" role="alert" aria-live="polite"></div>
+
+        <div class="dashboard-grid">
+            <div class="risk-card" id="recession-card">
+                <h2 class="risk-title">📉 Massive Recession</h2>
+                <div class="probability-display" id="recession-prob" aria-label="Recession probability">15.0%</div>
+                <div class="probability-change">Base rate: 15%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="depression-card">
+                <h2 class="risk-title">📊 Economic Depression</h2>
+                <div class="probability-display" id="depression-prob" aria-label="Depression probability">3.0%</div>
+                <div class="probability-change">Base rate: 3%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="reserve-card">
+                <h2 class="risk-title">💵 USD Reserve Status Loss</h2>
+                <div class="probability-display" id="reserve-prob" aria-label="Reserve status loss probability">5.0%</div>
+                <div class="probability-change">Base rate: 5%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="default-card">
+                <h2 class="risk-title">🏦 US Debt Default</h2>
+                <div class="probability-display" id="default-prob" aria-label="Debt default probability">1.0%</div>
+                <div class="probability-change">Base rate: 1%</div>
+                <div class="indicator-list"></div>
+            </div>
+
+            <div class="risk-card" id="devaluation-card">
+                <h2 class="risk-title">📉 USD Devaluation</h2>
+                <div class="probability-display" id="devaluation-prob" aria-label="Currency devaluation probability">20.0%</div>
+                <div class="probability-change">Base rate: 20%</div>
+                <div class="indicator-list"></div>
+            </div>
+        </div>
+
+        <section class="indicators-section">
+            <h2>
+                Key Economic Indicators
+                <span class="loading" id="loading-indicator" aria-label="Loading"></span>
+                <button class="refresh-button" aria-label="Refresh data">
+                    🔄 Refresh Data
+                </button>
+            </h2>
+            <div class="indicators-grid" id="indicators-grid" role="region" aria-label="Economic indicators">
+                <!-- Indicators will be populated here -->
+            </div>
+        </section>
+
+        <div class="update-time">
+            Last updated: <span id="last-update">Never</span>
+            <div id="cors-notice" style="margin-top: 10px; font-size: 0.8rem; color: #888;"></div>
+        </div>
+
+        <details>
+            <summary>
+                🚀 Enable Live FRED Data (Quick Setup)
+            </summary>
+            <div>
+                <h3>Step 1: Save the Proxy Server</h3>
+                <p>Copy the proxy server code from the "FRED API Proxy Server" artifact above and save it as <code>fred-proxy-server.js</code></p>
+
+                <h3>Step 2: Install & Run</h3>
+                <p>In your terminal, run:</p>
+                <pre><code># Install dependencies
+npm install express cors axios
+
+# Run the server
+node fred-proxy-server.js</code></pre>
+
+                <h3>Step 3: Refresh Dashboard</h3>
+                <p>Once you see "🚀 FRED Proxy Server Running!" in your terminal, refresh this page.</p>
+                <p>The dashboard will automatically connect and show live economic data!</p>
+
+                <h3>Current Status</h3>
+                <p id="backend-status">Checking backend connection...</p>
+
+                <h3>What You'll See</h3>
+                <ul>
+                    <li>✅ Green status = Connected to live FRED data</li>
+                    <li>📊 Real-time economic indicators updated every 30 minutes</li>
+                    <li>🎯 Bayesian probabilities based on actual market conditions</li>
+                    <li>⚡ Manual refresh button for instant updates</li>
+                </ul>
+            </div>
+        </details>
+    </div>
+
+    <script type="module" src="src/js/app.js"></script>
+</body>
+</html>
