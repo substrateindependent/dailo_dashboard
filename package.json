@@ -1,0 +1,31 @@
+{
+  "name": "dailo-economic-dashboard",
+  "version": "2.0.0",
+  "description": "Ray Dalio-inspired Economic Risk Monitoring Dashboard with Bayesian probability tracking",
+  "main": "index.html",
+  "scripts": {
+    "serve": "npx http-server -p 8000 -c-1",
+    "proxy": "node fred-proxy-server.js"
+  },
+  "keywords": [
+    "economics",
+    "dashboard",
+    "bayesian",
+    "fred",
+    "ray-dalio",
+    "risk-monitoring"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  },
+  "optionalDependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "axios": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
