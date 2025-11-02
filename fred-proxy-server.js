@@ -19,7 +19,7 @@ app.use(express.json());
 
 // Configuration
 const CONFIG = {
-    FRED_API_KEY: process.env.FRED_API_KEY || 'a1a8ea0bfdd8114159d3b42992c83c67',
+    FRED_API_KEY: process.env.FRED_API_KEY || 'f31a77511e44f9da37c9ec6632333504',
     FRED_BASE_URL: 'https://api.stlouisfed.org/fred/series/observations',
     TREASURY_BASE_URL: 'https://api.fiscaldata.treasury.gov/services/api/fiscal_service',
     CACHE_DURATION_MS: 30 * 60 * 1000, // 30 minutes
